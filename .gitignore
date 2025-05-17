@@ -1,5 +1,8 @@
 .env
 .keys
+.gpg
+.txt
+.asc
 
 TEST/*
 
