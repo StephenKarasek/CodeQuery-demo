@@ -1,0 +1,40 @@
+#numpy~=2.2.1
+#pandas~=2.2.3
+#scipy~=1.14.1
+#typing_extensions~=4.12.2
+#setuptools~=75.6.0
+#requests~=2.32.3
+#scikit-learn=1.6.1
+
+
+faiss-cpu
+#faiss-gpu
+
+
+# pip install -r requirements.txt
+####################################################
+# ML & AI
+pytorch
+langchain
+langchain-community
+langchain-core
+langchain-openai
+langchain-huggingface
+sentence-transformers
+openai
+# Communication & API
+fastapi
+uvicorn
+pydantic
+requests
+dotenv
+# Testing
+pytest
+pytest-asyncio
+pytest-cov
+httpx
+
+
+pdf2image
+pdfminer.six
+pypdf2
