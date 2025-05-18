@@ -47,9 +47,29 @@ You can use a GPG file, or add the key value to environment variables
   - Ollama
   - LMStudio
 
+#### LM Studio
+* Download https://lmstudio.ai/
+* Retrieve model (example uses Llama-3.2):
+  bartowski/Llama-3.2-3B-Instruct-GGUF
+* Load model in "Local Server"
+* Use curl command to retrieve information
 
+```bash
+curl http://localhost:1234/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{ 
+    "model": "bartowski/Llama-3.2-3B-Instruct-GGUF",
+    "messages": [ 
+      { "role": "system", "content": "Always answer in rhymes." },
+      { "role": "user", "content": "Introduce yourself." }
+    ], 
+    "temperature": 0.7, 
+    "max_tokens": -1,
+    "stream": true
+}'
+```
 
-
+* TODO: Implement Chat
 
 ################################################################
 # Examples
@@ -71,7 +91,7 @@ python src/main.py --repo TEST/scikit-learn-main
 ```
 curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" -d '{"query": "How does the RandomForestClassifier work?"}'
 ```
- RESULT: MIXED; not enough informa[readme.md](../../Library/CloudStorage/GoogleDrive-stephen.t.karasek%40gmail.com/My%20Drive/_JobSearch/%282%29%20IN%20PROGRESS/Modelcode/Assessment%20/readme.md)tion to answer, but provides contact info from the repo owners
+ RESULT: MIXED; not enough information to answer, but provides contact info from the repo owners
 
 
 ### grip-no-tests

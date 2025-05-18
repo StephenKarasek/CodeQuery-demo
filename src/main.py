@@ -32,6 +32,12 @@ def parse_arguments():
         required=False
     )
     parser.add_argument(
+        "--local-model",
+        help="local model URL; default = \"http://localhost:1234/v1/chat/completions\"",
+        default="http://localhost:1234/v1/chat/completions",
+        required=False
+    )
+    parser.add_argument(
         "--model",
         help="name of LLM to use. Options include: gpt-4o, davinci, CUSTOM ; default = \"gpt-4o\"",
         default="gpt-4o",
@@ -54,7 +60,7 @@ def parse_arguments():
 
 def setup_environment():
     args = parse_arguments()
-    global OPENAI_API_KEY, EMBEDDING_MODEL, REPO_PATH, LLM
+    global OPENAI_API_KEY, EMBEDDING_MODEL, REPO_PATH, LLM, LOCAL_MODEL
 
     load_dotenv()
     rootpath = os.path.dirname(os.path.abspath(__file__))
@@ -64,6 +70,9 @@ def setup_environment():
         rootpath = rootpath[:-3]
 
     KEYPATH = os.path.join(rootpath, ".keys", args.key)
+    
+    # Set local model URL if provided
+    LOCAL_MODEL = args.local_model if args.local_model else None
 
     load_dotenv()
     GPG_PASSPHRASE = os.getenv("GPG_PASSPHRASE")
@@ -79,8 +88,8 @@ def setup_environment():
             print(e)
             decrypted_key = None
 
-    if decrypted_key is None:
-        raise Exception("No OpenAI API key found in .env or GPG file")
+    if decrypted_key is None and not LOCAL_MODEL:
+        raise Exception("No OpenAI API key found in .env or GPG file and no local model specified")
     else:
         OPENAI_API_KEY = decrypted_key
 
@@ -181,8 +190,9 @@ class CodeAnalyzer:
         'pdf': ['.pdf']
     }
 
-    def __init__(self, repo_path: str, embedding_model: str = 'default'):
+    def __init__(self, repo_path: str, embedding_model: str = 'default', local_model: str = None):
         self.repo_path = repo_path
+        self.local_model = local_model
         if embedding_model not in self.embedding_models:
             logger.warning(f"Invalid embedding model: {embedding_model}. Using default.")
             embedding_model = self.embedding_models['MiniLM-L6']
@@ -374,9 +384,34 @@ class CodeAnalyzer:
 class QuestionAnsweringService:
     def __init__(self, analyzer: CodeAnalyzer, temp=0.2):
         self.analyzer = analyzer
-        self.llm = ChatOpenAI(model='gpt-4o', temperature=temp)
+        if hasattr(analyzer, 'local_model') and analyzer.local_model:
+            # Use local model
+            base_url = analyzer.local_model
+            # Remove /v1/chat/completions if present in the URL
+            if base_url.endswith('/v1/chat/completions'):
+                base_url = base_url[:-20]  # Remove the last 20 characters
+            # Ensure base_url ends with a single slash
+            base_url = base_url.rstrip('/') + '/'
+            
+            logger.info(f"Initializing local model with base_url: {base_url}")
+            # Configure for local model
+            self.llm = ChatOpenAI(
+                model='local-model',  # Simple model name
+                base_url=base_url + 'v1',  # Just add v1 to the base URL
+                temperature=temp,
+                api_key="not-needed",  # Required by LangChain but not used for local models
+                default_headers={
+                    "Content-Type": "application/json"
+                }
+            )
+        else:
+            # Use OpenAI model
+            self.llm = ChatOpenAI(model='gpt-4o', temperature=temp)
 
     async def generate_answer(self, query: str, context: List[str]) -> str:
+        logger.info(f"Generating answer for query: {query}")
+        logger.info(f"Using context with {len(context)} segments")
+        
         prompt = PromptTemplate(
             template="""
 You are an expert code analyst. Provide a detailed and precise answer based strictly on the provided code context.
@@ -397,10 +432,14 @@ Detailed Technical Analysis:""",
         )
         chain = LLMChain(llm=self.llm, prompt=prompt)
         try:
+            logger.info("Sending request to LLM...")
             answer = await chain.arun(query=query, context='\n\n'.join(context))
+            logger.info("Received response from LLM")
+            logger.info(f"Answer length: {len(answer)} characters")
             return answer
         except Exception as e:
             logger.error(f"Error generating answer: {e}")
+            logger.error(f"Full error details: {traceback.format_exc()}")
             return f"An error occurred while generating the answer: {str(e)}"
 
 
@@ -418,8 +457,8 @@ class QueryResponse(BaseModel):
 class CodeQAApp:
     k = 3
 
-    def __init__(self, repo_path: str, embedding_model: str = 'default'):
-        self.analyzer = CodeAnalyzer(repo_path, embedding_model)
+    def __init__(self, repo_path: str, embedding_model: str = 'default', local_model: str = None):
+        self.analyzer = CodeAnalyzer(repo_path, embedding_model, local_model)
         self.app = FastAPI()
         self.qa_service = None
         logger.info("Starting code analysis...")
@@ -431,11 +470,17 @@ class CodeQAApp:
 
     async def analyze_code(self, request: QueryRequest) -> QueryResponse:
         try:
+            logger.info(f"Processing query: {request.query}")
             relevant_docs = self.analyzer.vectorstore.similarity_search(request.query, k=self.k)
             relevant_context = [doc.page_content for doc in relevant_docs]
             logger.info(f"Found {len(relevant_context)} relevant code segments")
+            
             qa_service = QuestionAnsweringService(self.analyzer)
+            logger.info("Created QuestionAnsweringService instance")
+            
             answer = await qa_service.generate_answer(request.query, relevant_context)
+            logger.info("Generated answer successfully")
+            
             return QueryResponse(answer=answer, context=relevant_context)
         except Exception as e:
             logger.error(f"Error processing request: {str(e)}")
@@ -445,11 +490,14 @@ class CodeQAApp:
     def _setup_routes(self):
         @self.app.post("/ask", response_model=QueryResponse)
         async def handle_request(request: QueryRequest):
-            return await self.analyze_code(request)
+            logger.info("Received request at /ask endpoint")
+            response = await self.analyze_code(request)
+            logger.info("Sending response back to client")
+            return response
 
     def run(self, host: str = '0.0.0.0', port: int = 8000):
         logger.info(f"Starting server on {host}:{port}")
-        uvicorn.run(self.app, host=host, port=port)
+        uvicorn.run(self.app, host=host, port=port, log_level="info")
 
 
 # Configuration classes (unchanged)
@@ -458,13 +506,15 @@ class Config:
         'key': "openai-steve-sa.key",
         'model': "gpt-4o",
         'embedding': "MiniLM-L6",
-        'repo': "./TEST/grip-no-tests"
+        'repo': "./TEST/grip-no-tests",
+        'local_model': None
     }
     TEST_DEFAULTS = {
         'key': "openai-steve-sa.key",
         'model': "gpt-4",
         'embedding': "MiniLM-L6",
-        'repo': "./TEST/test-repo"
+        'repo': "./TEST/test-repo",
+        'local_model': None
     }
 
     def __init__(self, environment='production', **kwargs):
@@ -474,6 +524,7 @@ class Config:
         self.model = kwargs.get('model', defaults['model'])
         self.embedding = kwargs.get('embedding', defaults['embedding'])
         self.repo = kwargs.get('repo', defaults['repo'])
+        self.local_model = kwargs.get('local_model', defaults['local_model'])
         self._initialize_paths()
 
     def get_openai_key(self) -> str:
@@ -517,7 +568,7 @@ def initialize_app(config: Config) -> CodeQAApp:
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[logging.FileHandler('code_qa_app.log'), logging.StreamHandler()]
     )
-    return CodeQAApp(repo_path=config.repo, embedding_model=config.embedding)
+    return CodeQAApp(repo_path=config.repo, embedding_model=config.embedding, local_model=config.local_model)
 
 
 def main():
