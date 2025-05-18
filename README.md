@@ -190,7 +190,7 @@ python -m pytest src/test_code_qa.py -v
 
 ## Project Organization
 
-The project has been restructured into multiple modules for better organization:
+The project is organized into multiple modules:
 
 - **config.py**: Configuration and environment setup
 - **code_analyzer.py**: Core functionality for analyzing code repositories
