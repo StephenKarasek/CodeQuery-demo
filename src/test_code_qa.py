@@ -4,7 +4,11 @@ import os
 from pathlib import Path
 from unittest.mock import Mock, patch
 from dotenv import load_dotenv
-from main import Config, CodeAnalyzer, QuestionAnsweringService, CodeQAApp, initialize_app, QueryModel, QueryRequest
+
+from .config import Config
+from .code_analyzer import CodeAnalyzer, CodeQAApp
+from .qa_service import QuestionAnsweringService, QueryRequest
+from .parsers import is_valid_file, parse_python_file
 
 
 @pytest.fixture
@@ -97,16 +101,15 @@ class TestCodeAnalyzer:
 
         # Test valid file
         python_file = Path(test_environment) / "test.py"
-        assert analyzer._is_valid_file(python_file)
+        assert is_valid_file(python_file)
 
         # Test non-existent file
         missing_file = Path(test_environment) / "nonexistent.py"
-        assert not analyzer._is_valid_file(missing_file)
+        assert not is_valid_file(missing_file)
 
     def test_python_parsing(self, test_environment):
-        analyzer = CodeAnalyzer(test_environment)
         python_file = Path(test_environment) / "test.py"
-        chunks = analyzer._parse_python_file(python_file.read_text(), str(python_file))
+        chunks = parse_python_file(python_file.read_text(), str(python_file))
 
         assert len(chunks) == 3  # Should find standalone function, class, and class method
         assert any(c['type'] == 'FunctionDef' and c['name'] == 'test_function' for c in chunks)
@@ -127,6 +130,7 @@ class TestQuestionAnswering:
 
         try:
             # Initialize application with test configuration
+            from .config import initialize_app
             app = initialize_app(test_config)
 
             # Test query processing
