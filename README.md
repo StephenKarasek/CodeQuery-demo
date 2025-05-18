@@ -75,40 +75,64 @@ curl http://localhost:1234/v1/chat/completions \
 # Examples
 
 ### pymc-main
-```[readme.md](../../Library/CloudStorage/GoogleDrive-stephen.t.karasek%40gmail.com/My%20Drive/_JobSearch/%282%29%20IN%20PROGRESS/Modelcode/Assessment%20/readme.md)
-python src/main.py --repo TEST/pymc-main
+API key
+```bash
+python src/main.py --repo TEST/pymc-main --key /path/to/key
 ```
+Local Model
+```bash
+python src/main.py --repo TEST/pymc-main --local-model http://localhost:1234
 ```
+Query
+```bash
 curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" -d '{"query": "How does the Metropolis-Hastings algorithm work?"}'
 ```
 RESULT: success; returns answer & explanation
 
 
 ### scikit-learn-main
+API key
+```bash
+python src/main.py --repo TEST/scikit-learn-main --key /path/to/key
 ```
-python src/main.py --repo TEST/scikit-learn-main
+Local Model
+```bash
+python src/main.py --repo TEST/scikit-learn-main --local-model http://localhost:1234
 ```
-```
+Query
+```bash
 curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" -d '{"query": "How does the RandomForestClassifier work?"}'
 ```
  RESULT: MIXED; not enough information to answer, but provides contact info from the repo owners
 
 
 ### grip-no-tests
+API key
+```bash
+python src/main.py --repo TEST/grip-no-tests --key /path/to/key
 ```
-python src/main.py --repo TEST/grip-no-tests
+Local Model
+```bash
+python src/main.py --repo TEST/grip-no-tests --local-model http://localhost:1234
 ```
-```
+Query
+```bash
 curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" -d '{"query": "What does the create_app function do? what file is it present in?"}'
 ```
 RESULT: success; returns answer & explanation
 
 
 ### OpenFOAM-dev-master
+API key
+```bash
+python src/main.py --repo TEST/OpenFOAM-dev-master --key /path/to/key
 ```
-python src/main.py --repo TEST/OpenFOAM-dev-master
+Local Model
+```bash
+python src/main.py --repo TEST/OpenFOAM-dev-master --local-model http://localhost:1234
 ```
-```
+Query
+```bash
 curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" -d '{"query": "How could I create a k-epsilon turbulent flow simulation?"}'
 ```
 RESULT: success; returns answer & explanation
@@ -129,9 +153,10 @@ RESULT: success; returns answer & explanation
 ### LLMs
 * API
   * GPT-4o (working!)
-  * (TODO: Anthropic’s Claude, Llama, …)
-* locally
-  * use LMStudio or HuggingFace’s transformers
+  * (TODO: Anthropic Claude, Mistral, …)
+* Locally
+  * use LMStudio, Ollama, HuggingFace, ...
+  * Tested on Llama & Mistral
 
 
 
@@ -140,20 +165,9 @@ RESULT: success; returns answer & explanation
   * (i.e. those that could not fit in a model’s context window)
 
 
-### Evaluation Criteria
-* Functionality
-  - Does the API handle a variety of questions?
-  - Does the API handle a variety of repos?
-  - Does the API handle large repos?
-  - Does the API handle large questions?
-####
-* Performance
-  - Does the API answer questions correctly?
-  - Speed?
-  - Memory usage?
 
 ### Unit Tests
-#TODO - UNFINISHED
+#TODO
 
 ```
 pytest -v --cov=src
