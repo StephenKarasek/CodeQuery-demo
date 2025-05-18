@@ -199,5 +199,3 @@ The project has been restructured into multiple modules for better organization:
 - **utils.py**: Utility functions and helpers
 - **main.py**: Application entry point
 
-# Questions
-contact Stephen (stephen.t.karasek@gmail.com)
