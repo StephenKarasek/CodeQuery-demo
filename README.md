@@ -13,19 +13,18 @@ REST API that answers questions about a local repo (Python, C++, etc.) using a c
 
 ### Startup
 ```bash
-python src/main.py --repo /path/to/codebase/dir
+python -m src.main --repo /path/to/codebase/dir
 ```
 This will start up the tool, process the codebase into a vector database, and confirm when it is ready for queries.
 
 #### Input
 * The API accepts a JSON object with the following fields:
-  - `repo_path`: the path to the root of the repo
-  - `question`: the question to answer
+  - `query`: the question to answer
 
 #### Output
 * The API returns a JSON object with the following fields:
   - `answer`: the answer to the question
-  - `code_snippet`: a code snippet (if applicable)
+  - `context`: code segments used to generate the answer
 
 ## LLM
 You will need an OpenAI key, or run an LLM locally
@@ -77,11 +76,11 @@ curl http://localhost:1234/v1/chat/completions \
 ### pymc-main
 API key
 ```bash
-python src/main.py --repo TEST/pymc-main --key /path/to/key
+python -m src.main --repo TEST/pymc-main --key /path/to/key
 ```
 Local Model
 ```bash
-python src/main.py --repo TEST/pymc-main --local-model http://localhost:1234
+python -m src.main --repo TEST/pymc-main --local-model http://localhost:1234
 ```
 Query
 ```bash
@@ -93,11 +92,11 @@ RESULT: success; returns answer & explanation
 ### scikit-learn-main
 API key
 ```bash
-python src/main.py --repo TEST/scikit-learn-main --key /path/to/key
+python -m src.main --repo TEST/scikit-learn-main --key /path/to/key
 ```
 Local Model
 ```bash
-python src/main.py --repo TEST/scikit-learn-main --local-model http://localhost:1234
+python -m src.main --repo TEST/scikit-learn-main --local-model http://localhost:1234
 ```
 Query
 ```bash
@@ -109,11 +108,11 @@ curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" -d '{
 ### grip-no-tests
 API key
 ```bash
-python src/main.py --repo TEST/grip-no-tests --key /path/to/key
+python -m src.main --repo TEST/grip-no-tests --key /path/to/key
 ```
 Local Model
 ```bash
-python src/main.py --repo TEST/grip-no-tests --local-model http://localhost:1234
+python -m src.main --repo TEST/grip-no-tests --local-model http://localhost:1234
 ```
 Query
 ```bash
@@ -125,11 +124,11 @@ RESULT: success; returns answer & explanation
 ### OpenFOAM-dev-master
 API key
 ```bash
-python src/main.py --repo TEST/OpenFOAM-dev-master --key /path/to/key
+python -m src.main --repo TEST/OpenFOAM-dev-master --key /path/to/key
 ```
 Local Model
 ```bash
-python src/main.py --repo TEST/OpenFOAM-dev-master --local-model http://localhost:1234
+python -m src.main --repo TEST/OpenFOAM-dev-master --local-model http://localhost:1234
 ```
 Query
 ```bash
@@ -162,16 +161,15 @@ RESULT: success; returns answer & explanation
 
 ### Input Size
 * Support large repos
-  * (i.e. those that could not fit in a model’s context window)
+  * (i.e. those that could not fit in a model's context window)
 
 
 
 ### Unit Tests
-#TODO
-
+Run tests with:
 ```
 pytest -v --cov=src
-python -m pytest test_code_qa.py -v
+python -m pytest src/test_code_qa.py -v
 ```
 ### CodeAnalyzer
 * File validation logic
@@ -190,8 +188,16 @@ python -m pytest test_code_qa.py -v
 * Response format validation
 
 
+## Project Organization
+
+The project has been restructured into multiple modules for better organization:
+
+- **config.py**: Configuration and environment setup
+- **code_analyzer.py**: Core functionality for analyzing code repositories
+- **parsers.py**: File parsing for different file types
+- **qa_service.py**: Question answering using LLMs
+- **utils.py**: Utility functions and helpers
+- **main.py**: Application entry point
 
 # Questions
 contact Stephen (stephen.t.karasek@gmail.com)
-
-
