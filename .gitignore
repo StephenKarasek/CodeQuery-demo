@@ -16,3 +16,6 @@ __pycache__/*
 *.log
 **/.claude/settings.local.json
 CLAUDE.md
+GPT.md
+Llama.md
+Mistral.md
